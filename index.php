@@ -221,11 +221,13 @@ function normalize_price($s)
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
         }
 
         .theme-item.show {
             opacity: 1;
             transform: translateY(0);
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -255,7 +257,8 @@ function normalize_price($s)
                     </svg>
                 </label>
 
-                <ul tabindex="0" class="relative dropdown-content flex flex-col p-2 mt-2 w-60">
+                <!-- Added absolute and pointer-events-none by default to prevent the blank space from catching clicks -->
+                <ul tabindex="0" class="absolute dropdown-content flex flex-col p-2 mt-2 w-60 pointer-events-none">
                     <!-- Theme Items -->
                     <li class="theme-item opacity-0 transform translate-y-2 mb-2">
                         <div data-theme="sunset" class="theme-preview cursor-pointer rounded-md p-3 flex items-center justify-between hover:shadow hover:bg-base-300 transition mb-2 relative">
@@ -405,7 +408,8 @@ function normalize_price($s)
 
             <!-- Results -->
             <?php if (!empty($result)): ?>
-                <div class="mt-8">
+                <!-- Added ID here to hide this entire block on clear -->
+                <div id="resultsContainer" class="mt-8">
                     <?php if ($result['error']): ?>
                         <div class="alert alert-error shadow-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -513,12 +517,6 @@ function normalize_price($s)
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <script>
-        // small UI helpers
-        document.getElementById('clearBtn').addEventListener('click', function() {
-            document.querySelector('textarea[name="prices"]').value = '';
-            document.querySelector('input[name="domain"]').value = '';
-        });
-
         // Theme switcher
         const defaultTheme = "sunset";
         const savedTheme = localStorage.getItem("theme") || defaultTheme;
@@ -530,6 +528,9 @@ function normalize_price($s)
                 const selectedTheme = item.getAttribute("data-theme") || defaultTheme;
                 document.documentElement.setAttribute("data-theme", selectedTheme);
                 localStorage.setItem("theme", selectedTheme);
+
+                // Force the dropdown to close smoothly after a theme is clicked
+                document.activeElement.blur();
             });
         });
     </script>
@@ -552,6 +553,7 @@ function normalize_price($s)
     <!-- Items Easing for dropdown -->
     <script>
         const dropdown = document.querySelector(".dropdown");
+        const dropdownContent = dropdown.querySelector(".dropdown-content");
         const themeItems2 = dropdown.querySelectorAll(".theme-item");
         let animationTimeouts = [];
 
@@ -562,6 +564,7 @@ function normalize_price($s)
 
         function fadeInItems() {
             clearAnimations();
+            dropdownContent.classList.remove("pointer-events-none"); // Enable clicks when opening
             themeItems2.forEach((item, index) => {
                 animationTimeouts.push(setTimeout(() => {
                     item.classList.add("show");
@@ -571,6 +574,7 @@ function normalize_price($s)
 
         function fadeOutItems() {
             clearAnimations();
+            dropdownContent.classList.add("pointer-events-none"); // Disable clicks when closing
             themeItems2.forEach((item, index) => {
                 animationTimeouts.push(setTimeout(() => {
                     item.classList.remove("show");
@@ -602,6 +606,7 @@ function normalize_price($s)
         }
 
         const textarea = document.getElementById("pricePointsInput");
+        const domainInput = document.getElementById("domainInput");
         const badge = document.getElementById("priceBadge");
         const badgeCounter = document.querySelector("#priceBadgeCounter .counter_value");
         const baBtn = document.getElementById("loadBA");
@@ -627,12 +632,22 @@ function normalize_price($s)
         });
 
         clearBtnApp.addEventListener("click", () => {
+            // Clear inputs
             textarea.value = "";
+            if (domainInput) domainInput.value = "";
+
+            // Reset Badges
             badge.innerText = "Custom Price Points";
             badge.className = "badge badge-primary badge-xs shadow-sm";
             badgeCounter.innerText = 0;
             updateCounter();
             isPresetLoaded = false;
+
+            // Clear Results from UI if present
+            const resultsContainer = document.getElementById("resultsContainer");
+            if (resultsContainer) {
+                resultsContainer.style.display = "none";
+            }
         });
 
         textarea.addEventListener("input", () => {
