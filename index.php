@@ -49,8 +49,11 @@ function check_prices_on_terms_page($pricesInput, $url)
     // Parse HTML, select only div.terms_cond elements
     libxml_use_internal_errors(true);
     $dom = new DOMDocument();
-    // convert to HTML-ENTITIES to better handle utf-8 content
-    $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'));
+
+    // PHP 8.2+ Fix: encode to numeric entities to handle UTF-8 without deprecated mb_convert_encoding
+    $encodedContent = mb_encode_numericentity($content, [0x80, 0x10FFFF, 0, ~0], 'UTF-8');
+    $dom->loadHTML($encodedContent);
+
     $xpath = new DOMXPath($dom);
     $nodes = $xpath->query("//div[contains(concat(' ', normalize-space(@class), ' '), ' terms_cond ')]");
 
